@@ -1,0 +1,8 @@
+.vscode
+.DS_Store
+.nvimlog
+*.swp
+.zed
+__pycache__
+Mobile.xcframework
+
