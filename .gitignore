@@ -5,4 +5,7 @@
 .zed
 __pycache__
 Mobile.xcframework
-
+*.gz
+*.tar
+*.mp4
+*.bson

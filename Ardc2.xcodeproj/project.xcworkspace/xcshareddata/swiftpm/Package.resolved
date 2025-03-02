@@ -1,0 +1,87 @@
+{
+  "originHash" : "d97dfc6d14fe2cf1152edd5febec67ac36d0d2d499d42a57eb7a78c441d9d6f8",
+  "pins" : [
+    {
+      "identity" : "datacompression",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mw99/DataCompression",
+      "state" : {
+        "revision" : "4ac2c9c108d80b690a74252a4ec48f47e9995e00",
+        "version" : "3.7.0"
+      }
+    },
+    {
+      "identity" : "swift-atomics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-atomics.git",
+      "state" : {
+        "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "swift-bson",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mongodb/swift-bson",
+      "state" : {
+        "branch" : "main",
+        "revision" : "de94473c2b872334937117af19c6c5f3e810e0ab"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
+        "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "swift-extras-base64",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-extras/swift-extras-base64",
+      "state" : {
+        "revision" : "778e00dd7cc2b7970742f061cffc87dd570e6bfa",
+        "version" : "0.5.0"
+      }
+    },
+    {
+      "identity" : "swift-extras-json",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-extras/swift-extras-json",
+      "state" : {
+        "revision" : "122b9454ef01bf89a4c190b8fd3717ddd0a2fbd0",
+        "version" : "0.6.0"
+      }
+    },
+    {
+      "identity" : "swift-nio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-nio.git",
+      "state" : {
+        "revision" : "c51907a839e63ebf0ba2076bba73dd96436bd1b9",
+        "version" : "2.81.0"
+      }
+    },
+    {
+      "identity" : "swift-system",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-system.git",
+      "state" : {
+        "revision" : "a34201439c74b53f0fd71ef11741af7e7caf01e1",
+        "version" : "1.4.2"
+      }
+    },
+    {
+      "identity" : "tarscape",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kayembi/Tarscape",
+      "state" : {
+        "branch" : "main",
+        "revision" : "ce026160f8f009275afd1cc8175a199aa3ec0072"
+      }
+    }
+  ],
+  "version" : 3
+}

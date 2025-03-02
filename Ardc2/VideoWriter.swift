@@ -6,6 +6,7 @@ class VideoWriter {
     private var videoWriter: AVAssetWriter?
     private var videoWriterInput: AVAssetWriterInput?
     private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
+    private var firstTimestamp: Double?
 
     init(fileURL: URL) {
         self.fileURL = fileURL
@@ -20,14 +21,23 @@ class VideoWriter {
             try FileManager.default.removeItem(at: fileURL)
         } catch {}
 
+        firstTimestamp = nil
+
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: 1920,
             AVVideoHeightKey: 1080,
+            AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 10000000, // 10 Mbps
+                AVVideoMaxKeyFrameIntervalKey: 30,   // 每秒一个关键帧
+                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel
+            ]
         ]
 
         videoWriter = try? AVAssetWriter(outputURL: fileURL, fileType: .mp4)
         videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        videoWriterInput?.expectsMediaDataInRealTime = true
 
         guard let videoWriter = videoWriter,
               let videoWriterInput = videoWriterInput else { return }
@@ -36,6 +46,7 @@ class VideoWriter {
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferWidthKey as String: 1920,
             kCVPixelBufferHeightKey as String: 1080,
+            kCVPixelBufferMetalCompatibilityKey as String: true
         ]
 
         pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
@@ -58,6 +69,7 @@ class VideoWriter {
         videoWriterInput.markAsFinished()
         videoWriter.finishWriting {
             let fileSize = (try? FileManager.default.attributesOfItem(atPath: self.fileURL.path)[.size] as? Int64) ?? 0
+            self.firstTimestamp = nil
             completion(self.fileURL, fileSize)
         }
     }
@@ -68,8 +80,18 @@ class VideoWriter {
               videoWriterInput.isReadyForMoreMediaData else { return }
 
         let pixelBuffer = frame.capturedImage
-        let time = CMTime(seconds: frame.timestamp, preferredTimescale: 1_000_000_000)
-
+        
+        // 处理时间戳
+        if firstTimestamp == nil {
+            firstTimestamp = frame.timestamp
+        }
+        
+        guard let firstTimestamp = firstTimestamp else { return }
+        
+        // 计算相对时间（以秒为单位）
+        let relativeTime = frame.timestamp - firstTimestamp
+        let time = CMTime(seconds: relativeTime, preferredTimescale: 1000000)
+        
         pixelBufferAdaptor.append(pixelBuffer, withPresentationTime: time)
     }
 }
