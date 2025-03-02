@@ -6,6 +6,7 @@ import SwiftBSON
 import SwiftUI
 import Compression
 import Foundation
+import UIKit
 
 struct FramesData {
     var arkitPose: [[Float32]] // n * 7
@@ -62,7 +63,7 @@ struct DepthMapFileInfo {
 }
 
 class DepthMapRecorder {
-    private let maxNumberOfFrames = 250
+    let maxNumberOfFrames = 250
     private var frameCount: Int = 0
     private var outputFiles: [URL] = []
     private var currentFileIndex: Int = 0
@@ -103,7 +104,7 @@ class DepthMapRecorder {
         
         // 创建新文件
         let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
-        let fileName = "DepthMap_\(currentFileIndex).depth"
+        let fileName = "depth_map_\(currentFileIndex).depth"
         currentOutputURL = URL(fileURLWithPath: documentsPath.appendingPathComponent(fileName))
         
         if let url = currentOutputURL {
@@ -250,6 +251,12 @@ struct ContentView: View {
     @State private var bsonFileSize: Int64 = 0
     @State private var bsonFileSizeError: Bool = false
     @State private var showCompletionInfo: Bool = false
+    @State private var recordingStartTime: Date?
+    @State private var recordingEndTime: Date?
+    @State private var yamlFileURL: URL?
+    @State private var yamlFileSize: Int64 = 0
+    @State private var yamlContent: String = ""
+    @State private var yamlContentError: Bool = false
 
     private let videoWriter: VideoWriter = {
         let fileURL = FileManager.default.temporaryDirectory
@@ -274,6 +281,93 @@ struct ContentView: View {
             }
         } catch {
             bsonFileSizeError = true
+        }
+    }
+    
+    // 生成YAML文件
+    private func generateYAMLFile() {
+        guard let startTime = recordingStartTime, let endTime = recordingEndTime else { return }
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let date = dateFormatter.string(from: startTime)
+        
+        dateFormatter.dateFormat = "HH:mm:ss"
+        let time = dateFormatter.string(from: startTime)
+        
+        let recordingDuration = endTime.timeIntervalSince(startTime)
+        
+        // 获取设备信息
+        let device = UIDevice.current
+        let deviceName = device.name
+        let deviceModel = device.model
+        let systemName = device.systemName
+        let systemVersion = device.systemVersion
+        let deviceIdentifier = device.identifierForVendor?.uuidString ?? "未知"
+        
+        // 构建YAML内容
+        let yamlContent = """
+        # 录制元信息
+        date: \(date)
+        time: \(time)
+        length: \(String(format: "%.2f", recordingDuration))
+        video:
+          num_frames: \(frameCount)
+          file_size: \(ByteCountFormatter.string(fromByteCount: videoFileSize, countStyle: .file))
+        task_description: "AR深度图录制"
+        task_id: 1
+        user: "\(deviceName)"
+        device:
+          name: "\(deviceName)"
+          model: "\(deviceModel)"
+          system: "\(systemName)"
+          version: "\(systemVersion)"
+          identifier: "\(deviceIdentifier)"
+        depth_map:
+          max_number_of_frames: \(depthMapRecorder.maxNumberOfFrames)
+          files:
+        """
+        
+        // 添加深度图文件信息
+        var yamlWithDepthFiles = yamlContent
+        for (index, fileInfo) in depthMapFiles.enumerated() {
+            yamlWithDepthFiles += "\n    - file_\(index):"
+            yamlWithDepthFiles += "\n        name: \"\(fileInfo.fileName)\""
+            yamlWithDepthFiles += "\n        size: \"\(ByteCountFormatter.string(fromByteCount: fileInfo.fileSize, countStyle: .file))\""
+        }
+        
+        // 添加BSON文件信息
+        yamlWithDepthFiles += "\nbson_data:"
+        if !bsonFileSizeError {
+            yamlWithDepthFiles += "\n  size: \"\(ByteCountFormatter.string(fromByteCount: bsonFileSize, countStyle: .file))\""
+        } else {
+            yamlWithDepthFiles += "\n  size: \"未知\""
+        }
+        
+        // 添加相机和深度图分辨率信息
+        yamlWithDepthFiles += "\nresolutions:"
+        yamlWithDepthFiles += "\n  camera: \"\(Int(imageResolution.width))×\(Int(imageResolution.height))\""
+        yamlWithDepthFiles += "\n  depth_map: \"\(Int(depthResolution.width))×\(Int(depthResolution.height))\""
+        
+        // 保存YAML文件
+        let yamlFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("recording_info.yaml")
+        do {
+            try yamlWithDepthFiles.write(to: yamlFileURL, atomically: true, encoding: .utf8)
+            
+            // 获取YAML文件大小
+            let attributes = try FileManager.default.attributesOfItem(atPath: yamlFileURL.path)
+            if let size = attributes[.size] as? Int64 {
+                self.yamlFileSize = size
+            }
+            
+            self.yamlFileURL = yamlFileURL
+            
+            // 读取YAML内容到状态变量
+            self.yamlContent = try String(contentsOf: yamlFileURL, encoding: .utf8)
+            self.yamlContentError = false
+        } catch {
+            print("YAML文件操作失败: \(error.localizedDescription)")
+            self.yamlContentError = true
         }
     }
 
@@ -340,12 +434,16 @@ struct ContentView: View {
                     Button(action: {
                         isRecording.toggle()
                         if isRecording {
+                            // 开始录制
+                            recordingStartTime = Date()
                             videoWriter.startRecording()
                             depthMapRecorder.startRecording()
                             frameCount = 0
                             isRecordingComplete = false
                             showCompletionInfo = false
                         } else {
+                            // 结束录制
+                            recordingEndTime = Date()
                             videoWriter.stopRecording { _, size in
                                 videoFileSize = size
                                 
@@ -369,6 +467,9 @@ struct ContentView: View {
                                         print("BSON保存失败: \(error.localizedDescription)")
                                         bsonFileSizeError = true
                                     }
+                                    
+                                    // 生成YAML元信息文件
+                                    self.generateYAMLFile()
                                     
                                     isRecordingComplete = true
                                     showCompletionInfo = true
@@ -415,6 +516,11 @@ struct ContentView: View {
                                 }
                             }
                             
+                            if let startTime = recordingStartTime, let endTime = recordingEndTime {
+                                let duration = endTime.timeIntervalSince(startTime)
+                                Text("录制时长: \(String(format: "%.2f", duration)) 秒")
+                            }
+                            
                             Text("帧数: \(frameCount)")
                             Text("视频文件大小: \(ByteCountFormatter.string(fromByteCount: videoFileSize, countStyle: .file))")
                             
@@ -422,6 +528,11 @@ struct ContentView: View {
                             Text(bsonFileSizeError ? 
                                 "无法获取BSON文件大小" : 
                                 "BSON文件大小: \(ByteCountFormatter.string(fromByteCount: bsonFileSize, countStyle: .file))")
+                            
+                            // 显示YAML文件信息
+                            if let _ = yamlFileURL {
+                                Text("YAML元信息文件大小: \(ByteCountFormatter.string(fromByteCount: yamlFileSize, countStyle: .file))")
+                            }
                             
                             Text("深度图文件:")
                                 .font(.headline)
@@ -453,6 +564,25 @@ struct ContentView: View {
                                     
                                     Divider()
                                         .background(Color.white.opacity(0.5))
+                                }
+                            }
+                            
+                            // YAML文件全文显示
+                            if let _ = yamlFileURL {
+                                Text("YAML元信息文件内容:")
+                                    .font(.headline)
+                                    .padding(.top, 10)
+                                
+                                if yamlContentError {
+                                    Text("无法读取YAML文件内容")
+                                        .foregroundColor(.red)
+                                } else {
+                                    Text(yamlContent)
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(8)
+                                        .background(Color.black.opacity(0.3))
+                                        .cornerRadius(5)
                                 }
                             }
                         }
