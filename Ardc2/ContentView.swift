@@ -8,6 +8,7 @@ import Compression
 import Tarscape
 import Foundation
 import UIKit
+import DataCompression
 
 struct FramesData {
     var arkitPose: [[Float32]] // n * 7
@@ -276,6 +277,8 @@ struct ContentView: View {
     @State private var yamlContent: String = ""
     @State private var yamlContentError: Bool = false
     @State private var outputDirectory: URL?
+    @State private var tarGzFileSize: Int64 = 0
+    @State private var tarGzFilePath: String = ""
 
     private let videoWriter: VideoWriter = {
         let fileURL = FileManager.default.temporaryDirectory
@@ -290,7 +293,7 @@ struct ContentView: View {
     // 创建输出目录
     private func createOutputDirectory() -> URL? {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMdd_HH_mm_ss"
+        dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = dateFormatter.string(from: Date())
         
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -416,12 +419,31 @@ struct ContentView: View {
         let tarGzURL = outputDir.appendingPathComponent("recording_archive.tar.gz")
 
         do {
+            // 创建tar文件
             try FileManager.default.createTar(at: tarURL, from: outputDir)
-            // show file size
-            let attributes = try FileManager.default.attributesOfItem(atPath: tarURL.path)
-            let fileSize = attributes[.size] as? Int64 ?? 0
-            print("打包完成，文件大小: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))")
-            print("文件路径: \(tarURL)")
+            
+            // 读取tar文件数据
+            let tarData = try Data(contentsOf: tarURL)
+            
+            // 创建gzip压缩数据
+            guard let gzippedData = tarData.gzip() else {
+                print("Gzip压缩失败")
+                return
+            }
+            
+            // 写入tar.gz文件
+            try gzippedData.write(to: tarGzURL)
+            
+            // 删除原始tar文件
+            try FileManager.default.removeItem(at: tarURL)
+            
+            // 更新压缩文件信息
+            let attributes = try FileManager.default.attributesOfItem(atPath: tarGzURL.path)
+            tarGzFileSize = attributes[.size] as? Int64 ?? 0
+            tarGzFilePath = tarGzURL.path
+            
+            print("打包完成，文件大小: \(ByteCountFormatter.string(fromByteCount: tarGzFileSize, countStyle: .file))")
+            print("文件路径: \(tarGzURL)")
         } catch {
             print("打包失败: \(error.localizedDescription)")
         }
@@ -652,6 +674,12 @@ struct ContentView: View {
                                         .background(Color.black.opacity(0.3))
                                         .cornerRadius(5)
                                 }
+                            }
+                            
+                            if tarGzFileSize > 0 {
+                                Text("压缩包大小: \(ByteCountFormatter.string(fromByteCount: tarGzFileSize, countStyle: .file))")
+                                Text("保存路径: \(tarGzFilePath)")
+                                    .font(.system(size: 11))
                             }
                         }
                         .foregroundColor(.white)
