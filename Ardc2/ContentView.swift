@@ -48,10 +48,12 @@ struct DepthMapFileInfo {
     let url: URL
     let fileName: String
     let fileSize: Int64
+    let frameCount: Int
     
-    init(url: URL) {
+    init(url: URL, frameCount: Int = 0) {
         self.url = url
         self.fileName = url.lastPathComponent
+        self.frameCount = frameCount
         
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
@@ -66,6 +68,7 @@ class DepthMapRecorder {
     let maxNumberOfFrames = 250
     private var frameCount: Int = 0
     private var outputFiles: [URL] = []
+    private var fileFrameCounts: [URL: Int] = [:]
     private var currentFileIndex: Int = 0
     private var processingQueue = DispatchQueue(label: "depthMapProcessing", qos: .userInteractive)
     
@@ -113,6 +116,7 @@ class DepthMapRecorder {
             
             if file != nil {
                 outputFiles.append(url)
+                fileFrameCounts[url] = 0
                 
                 // 初始化压缩对象
                 compressorPtr = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
@@ -165,6 +169,11 @@ class DepthMapRecorder {
                 }
                 
                 self.frameCount += 1
+                
+                // 更新当前文件的帧数
+                if let url = self.currentOutputURL {
+                    self.fileFrameCounts[url] = (self.fileFrameCounts[url] ?? 0) + 1
+                }
             }
             CVPixelBufferUnlockBaseAddress(depthMap, .readOnly)
         }
@@ -182,7 +191,7 @@ class DepthMapRecorder {
         processingQueue.async {
             guard let compressorPtr = self.compressorPtr else {
                 DispatchQueue.main.async {
-                    let fileInfos = self.outputFiles.map { DepthMapFileInfo(url: $0) }
+                    let fileInfos = self.outputFiles.map { DepthMapFileInfo(url: $0, frameCount: self.fileFrameCounts[$0] ?? 0) }
                     completion(fileInfos)
                 }
                 return
@@ -217,7 +226,7 @@ class DepthMapRecorder {
             }
             
             DispatchQueue.main.async {
-                let fileInfos = self.outputFiles.map { DepthMapFileInfo(url: $0) }
+                let fileInfos = self.outputFiles.map { DepthMapFileInfo(url: $0, frameCount: self.fileFrameCounts[$0] ?? 0) }
                 completion(fileInfos)
             }
         }
@@ -307,12 +316,13 @@ struct ContentView: View {
         
         // 构建YAML内容
         let yamlContent = """
-        # 录制元信息
         date: \(date)
         time: \(time)
         length: \(String(format: "%.2f", recordingDuration))
         video:
           num_frames: \(frameCount)
+          height: \(Int(imageResolution.height))
+          width: \(Int(imageResolution.width))
           file_size: \(ByteCountFormatter.string(fromByteCount: videoFileSize, countStyle: .file))
         task_description: "AR深度图录制"
         task_id: 1
@@ -324,7 +334,9 @@ struct ContentView: View {
           version: "\(systemVersion)"
           identifier: "\(deviceIdentifier)"
         depth_map:
-          max_number_of_frames: \(depthMapRecorder.maxNumberOfFrames)
+          height: \(Int(depthResolution.height))
+          width: \(Int(depthResolution.width))
+          max_num_frames: \(depthMapRecorder.maxNumberOfFrames)
           files:
         """
         
@@ -334,6 +346,7 @@ struct ContentView: View {
             yamlWithDepthFiles += "\n    - file_\(index):"
             yamlWithDepthFiles += "\n        name: \"\(fileInfo.fileName)\""
             yamlWithDepthFiles += "\n        size: \"\(ByteCountFormatter.string(fromByteCount: fileInfo.fileSize, countStyle: .file))\""
+            yamlWithDepthFiles += "\n        num_frames: \(fileInfo.frameCount)"
         }
         
         // 添加BSON文件信息
@@ -343,12 +356,6 @@ struct ContentView: View {
         } else {
             yamlWithDepthFiles += "\n  size: \"未知\""
         }
-        
-        // 添加相机和深度图分辨率信息
-        yamlWithDepthFiles += "\nresolutions:"
-        yamlWithDepthFiles += "\n  camera: \"\(Int(imageResolution.width))×\(Int(imageResolution.height))\""
-        yamlWithDepthFiles += "\n  depth_map: \"\(Int(depthResolution.width))×\(Int(depthResolution.height))\""
-        
         // 保存YAML文件
         let yamlFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("recording_info.yaml")
         do {
@@ -544,8 +551,8 @@ struct ContentView: View {
                                     Text("文件名")
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .fontWeight(.bold)
-                                    Text("大小")
-                                        .frame(width: 100, alignment: .trailing)
+                                    Text("帧数 | 大小")
+                                        .frame(width: 150, alignment: .trailing)
                                         .fontWeight(.bold)
                                 }
                                 .padding(.horizontal, 5)
@@ -557,8 +564,8 @@ struct ContentView: View {
                                     HStack {
                                         Text(fileInfo.fileName)
                                             .frame(maxWidth: .infinity, alignment: .leading)
-                                        Text(ByteCountFormatter.string(fromByteCount: fileInfo.fileSize, countStyle: .file))
-                                            .frame(width: 100, alignment: .trailing)
+                                        Text("\(fileInfo.frameCount)帧 | \(ByteCountFormatter.string(fromByteCount: fileInfo.fileSize, countStyle: .file))")
+                                            .frame(width: 150, alignment: .trailing)
                                     }
                                     .padding(.horizontal, 5)
                                     
