@@ -5,6 +5,7 @@ import simd
 import SwiftBSON
 import SwiftUI
 import Compression
+import Tarscape
 import Foundation
 import UIKit
 
@@ -71,6 +72,7 @@ class DepthMapRecorder {
     private var fileFrameCounts: [URL: Int] = [:]
     private var currentFileIndex: Int = 0
     private var processingQueue = DispatchQueue(label: "depthMapProcessing", qos: .userInteractive)
+    private var outputDirectory: URL?
     
     // [压缩相关]
     private var compressorPtr: UnsafeMutablePointer<compression_stream>?
@@ -82,6 +84,10 @@ class DepthMapRecorder {
     init() {
         // [NOTE] 此处假设分辨率为256x192
         bufferSize = 256 * 192 * 2 * maxNumberOfFrames
+    }
+    
+    func updateOutputDirectory(_ directory: URL) {
+        outputDirectory = directory
     }
     
     func prepareForRecording() {
@@ -106,9 +112,12 @@ class DepthMapRecorder {
         }
         
         // 创建新文件
-        let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] as NSString
         let fileName = "depth_map_\(currentFileIndex).depth"
-        currentOutputURL = URL(fileURLWithPath: documentsPath.appendingPathComponent(fileName))
+        if let outputDir = outputDirectory {
+            currentOutputURL = outputDir.appendingPathComponent(fileName)
+        } else {
+            currentOutputURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        }
         
         if let url = currentOutputURL {
             FileManager.default.createFile(atPath: url.path, contents: nil, attributes: nil)
@@ -266,6 +275,7 @@ struct ContentView: View {
     @State private var yamlFileSize: Int64 = 0
     @State private var yamlContent: String = ""
     @State private var yamlContentError: Bool = false
+    @State private var outputDirectory: URL?
 
     private let videoWriter: VideoWriter = {
         let fileURL = FileManager.default.temporaryDirectory
@@ -276,6 +286,24 @@ struct ContentView: View {
     private let depthMapRecorder = DepthMapRecorder()
 
     @State private var framesData = FramesData()
+
+    // 创建输出目录
+    private func createOutputDirectory() -> URL? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMdd_HH_mm_ss"
+        let timestamp = dateFormatter.string(from: Date())
+        
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let outputDirectory = documentsDirectory.appendingPathComponent(timestamp)
+        
+        do {
+            try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true, attributes: nil)
+            return outputDirectory
+        } catch {
+            print("创建输出目录失败: \(error.localizedDescription)")
+            return nil
+        }
+    }
 
     // 更新BSON文件大小信息
     private func updateBSONFileSize() {
@@ -295,7 +323,9 @@ struct ContentView: View {
     
     // 生成YAML文件
     private func generateYAMLFile() {
-        guard let startTime = recordingStartTime, let endTime = recordingEndTime else { return }
+        guard let startTime = recordingStartTime,
+              let endTime = recordingEndTime,
+              let outputDir = outputDirectory else { return }
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -356,8 +386,9 @@ struct ContentView: View {
         } else {
             yamlWithDepthFiles += "\n  size: \"未知\""
         }
+        
         // 保存YAML文件
-        let yamlFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("recording_info.yaml")
+        let yamlFileURL = outputDir.appendingPathComponent("recording_info.yaml")
         do {
             try yamlWithDepthFiles.write(to: yamlFileURL, atomically: true, encoding: .utf8)
             
@@ -375,6 +406,24 @@ struct ContentView: View {
         } catch {
             print("YAML文件操作失败: \(error.localizedDescription)")
             self.yamlContentError = true
+        }
+    }
+
+    private func createTarGzArchive() {
+        guard let outputDir = outputDirectory else { return }
+
+        let tarURL = outputDir.appendingPathComponent("recording_archive.tar")
+        let tarGzURL = outputDir.appendingPathComponent("recording_archive.tar.gz")
+
+        do {
+            try FileManager.default.createTar(at: tarURL, from: outputDir)
+            // show file size
+            let attributes = try FileManager.default.attributesOfItem(atPath: tarURL.path)
+            let fileSize = attributes[.size] as? Int64 ?? 0
+            print("打包完成，文件大小: \(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))")
+            print("文件路径: \(tarURL)")
+        } catch {
+            print("打包失败: \(error.localizedDescription)")
         }
     }
 
@@ -441,9 +490,20 @@ struct ContentView: View {
                     Button(action: {
                         isRecording.toggle()
                         if isRecording {
+                            // 创建新的输出目录
+                            outputDirectory = createOutputDirectory()
+                            guard let outputDir = outputDirectory else {
+                                print("无法创建输出目录")
+                                isRecording = false
+                                return
+                            }
+                            
                             // 开始录制
                             recordingStartTime = Date()
+                            let videoURL = outputDir.appendingPathComponent("recording.mp4")
+                            videoWriter.updateFileURL(videoURL)
                             videoWriter.startRecording()
+                            depthMapRecorder.updateOutputDirectory(outputDir)
                             depthMapRecorder.startRecording()
                             frameCount = 0
                             isRecordingComplete = false
@@ -457,15 +517,13 @@ struct ContentView: View {
                                 depthMapRecorder.finishRecording { files in
                                     depthMapFiles = files
                                     
+                                    guard let outputDir = outputDirectory else { return }
                                     let bsonData = framesData.toBSON()
-                                    let bsonFileURL = FileManager.default.temporaryDirectory
-                                        .appendingPathComponent("frame_data.bson")
+                                    let bsonFileURL = outputDir.appendingPathComponent("frame_data.bson")
 
                                     do {
                                         let bsonBytes = try BSONEncoder().encode(bsonData)
-                                        // 确保 bsonBytes 不是 nil
                                         let bsonDataToWrite = bsonBytes.toData()
-                                        // 将BSON数据写入文件
                                         try bsonDataToWrite.write(to: bsonFileURL)
                                         
                                         // 更新BSON文件大小信息
@@ -477,6 +535,9 @@ struct ContentView: View {
                                     
                                     // 生成YAML元信息文件
                                     self.generateYAMLFile()
+                                    
+                                    // 创建tar.gz存档
+                                    self.createTarGzArchive()
                                     
                                     isRecordingComplete = true
                                     showCompletionInfo = true

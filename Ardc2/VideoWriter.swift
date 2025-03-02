@@ -2,13 +2,17 @@ import ARKit
 import AVFoundation
 
 class VideoWriter {
-    private let fileURL: URL
+    private var fileURL: URL
     private var videoWriter: AVAssetWriter?
     private var videoWriterInput: AVAssetWriterInput?
     private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
 
     init(fileURL: URL) {
         self.fileURL = fileURL
+    }
+
+    func updateFileURL(_ newURL: URL) {
+        self.fileURL = newURL
     }
 
     func startRecording() {
