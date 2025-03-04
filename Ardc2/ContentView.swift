@@ -166,7 +166,7 @@ struct ContentView: View {
 
         // 构建YAML内容
         let yamlContent = """
-        task_id: \(UUID().uuidString)
+        uuid: \(UUID().uuidString)
         task_description: "Random vibration"
         date: \(date)
         time: \(time)
