@@ -40,26 +40,6 @@ struct FramesData {
     }
 }
 
-struct DepthMapFileInfo {
-    let url: URL
-    let fileName: String
-    let fileSize: Int64
-    let frameCount: Int
-
-    init(url: URL, frameCount: Int = 0) {
-        self.url = url
-        fileName = url.lastPathComponent
-        self.frameCount = frameCount
-
-        do {
-            let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-            fileSize = attributes[.size] as? Int64 ?? 0
-        } catch {
-            fileSize = 0
-        }
-    }
-}
-
 struct ContentView: View {
     // [control]
     @State private var isRecording = false
