@@ -10,6 +10,7 @@
 		174B6C372D71EAFA00D00F41 /* SwiftBSON in Frameworks */ = {isa = PBXBuildFile; productRef = 174B6C362D71EAFA00D00F41 /* SwiftBSON */; };
 		1768CE7D2D74B2CF009CD8B2 /* DataCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 1768CE7C2D74B2CF009CD8B2 /* DataCompression */; };
 		1768CE802D74B7E0009CD8B2 /* Tarscape in Frameworks */ = {isa = PBXBuildFile; productRef = 1768CE7F2D74B7E0009CD8B2 /* Tarscape */; };
+		1768CE822D76F94A009CD8B2 /* DepthMapRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1768CE812D76F94A009CD8B2 /* DepthMapRecorder.swift */; };
 		17FD96D22D6E1037002C0370 /* Ardc2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FD96D12D6E1037002C0370 /* Ardc2App.swift */; };
 		17FD96D42D6E1037002C0370 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FD96D32D6E1037002C0370 /* ContentView.swift */; };
 		17FD96D62D6E1039002C0370 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 17FD96D52D6E1039002C0370 /* Assets.xcassets */; };
@@ -38,6 +39,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1768CE812D76F94A009CD8B2 /* DepthMapRecorder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DepthMapRecorder.swift; sourceTree = "<group>"; };
 		17FD96CE2D6E1037002C0370 /* Ardc2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ardc2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		17FD96D12D6E1037002C0370 /* Ardc2App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ardc2App.swift; sourceTree = "<group>"; };
 		17FD96D32D6E1037002C0370 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 				17FD96D12D6E1037002C0370 /* Ardc2App.swift */,
 				17FD96D32D6E1037002C0370 /* ContentView.swift */,
 				17FD97082D71BCE5002C0370 /* VideoWriter.swift */,
+				1768CE812D76F94A009CD8B2 /* DepthMapRecorder.swift */,
 				17FD96D52D6E1039002C0370 /* Assets.xcassets */,
 				17FD96D72D6E1039002C0370 /* Preview Content */,
 			);
@@ -278,6 +281,7 @@
 			files = (
 				17FD96D42D6E1037002C0370 /* ContentView.swift in Sources */,
 				17FD97092D71BCE5002C0370 /* VideoWriter.swift in Sources */,
+				1768CE822D76F94A009CD8B2 /* DepthMapRecorder.swift in Sources */,
 				17FD96D22D6E1037002C0370 /* Ardc2App.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
