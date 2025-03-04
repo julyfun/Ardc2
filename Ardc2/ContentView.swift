@@ -25,23 +25,17 @@ struct FramesData {
 
     func toBSON() -> BSON {
         var doc = BSONDocument()
-
-        // doc["depthMap"] = .array(depthMap.map { .array($0.map { .array($0.map { .double(Double($0)) }) }) })
-
         // Convert arkitPose (n * 7)
         doc["arkitPose"] = .array(arkitPose.map { .array($0.map { .double(Double($0)) }) })
-
         // Convert gripperPoses (n * 2 * 7)
         doc["gripperPoses"] = .array(gripperPoses.map { frame in
             .array(frame.map { pose in
                 .array(pose.map { .double(Double($0)) })
             })
         })
-
         // Convert scalar values
         doc["gripperWidth"] = .array(gripperWidth.map { .double(Double($0)) })
         doc["timestamps"] = .array(timestamps.map { .double(Double($0)) })
-
         return .document(doc)
     }
 }
@@ -67,11 +61,12 @@ struct DepthMapFileInfo {
 }
 
 struct ContentView: View {
-    @State private var poseInfo: String = ""
+    // [control]
     @State private var isRecording = false
     @State private var isRecordingComplete = false
     @State private var frameCount = 0
     // [render]
+    @State private var poseInfo: String = ""
     @State private var videoFileSize: Int64 = 0
     @State private var depthMapFiles: [DepthMapFileInfo] = []
     @State private var currentPosition: simd_float3 = .init(0, 0, 0)
@@ -92,15 +87,14 @@ struct ContentView: View {
     @State private var documentsDirectory: URL?
     @State private var outputDirectory: URL?
     @State private var timeString: String?
-
+    // [writer]
     private let videoWriter: VideoWriter = {
         let fileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("recording.mp4")
         return VideoWriter(fileURL: fileURL)
     }()
-
     private let depthMapRecorder = DepthMapRecorder()
-
+    // [data]
     @State private var framesData = FramesData()
 
     private func createOutputDirectory() -> URL? {
@@ -125,7 +119,6 @@ struct ContentView: View {
         }
     }
 
-    // 更新BSON文件大小信息
     private func updateBSONFileSize() {
         let bsonFileURL = FileManager.default.temporaryDirectory.appendingPathComponent("frame_data.bson")
         do {
@@ -141,7 +134,6 @@ struct ContentView: View {
         }
     }
 
-    // 生成YAML文件
     private func generateYAMLFile() {
         guard let startTime = recordingStartTime,
               let endTime = recordingEndTime,
@@ -156,7 +148,7 @@ struct ContentView: View {
 
         let recordingDuration = endTime.timeIntervalSince(startTime)
 
-        // 获取设备信息
+        // 设备信息
         let device = UIDevice.current
         let deviceName = device.name
         let deviceModel = device.model
@@ -190,7 +182,7 @@ struct ContentView: View {
           files:
         """
 
-        // 添加深度图文件信息
+        // 深度图文件信息
         var yamlWithDepthFiles = yamlContent
         for (index, fileInfo) in depthMapFiles.enumerated() {
             yamlWithDepthFiles += "\n    - file_\(index):"
@@ -199,7 +191,7 @@ struct ContentView: View {
             yamlWithDepthFiles += "\n        num_frames: \(fileInfo.frameCount)"
         }
 
-        // 添加BSON文件信息
+        // BSON文件信息
         yamlWithDepthFiles += "\nbson_data:"
         if !bsonFileSizeError {
             yamlWithDepthFiles += "\n  size: \"\(ByteCountFormatter.string(fromByteCount: bsonFileSize, countStyle: .file))\""
@@ -212,7 +204,6 @@ struct ContentView: View {
         do {
             try yamlWithDepthFiles.write(to: yamlFileURL, atomically: true, encoding: .utf8)
 
-            // 获取YAML文件大小
             let attributes = try FileManager.default.attributesOfItem(atPath: yamlFileURL.path)
             if let size = attributes[.size] as? Int64 {
                 yamlFileSize = size
@@ -237,7 +228,6 @@ struct ContentView: View {
         let tarGzURL = docDir.appendingPathComponent("\(timeString!).tar.gz")
 
         do {
-            // 创建tar文件
             try FileManager.default.createTar(at: tarURL, from: outputDir)
 
             // 读取tar文件数据
@@ -249,10 +239,10 @@ struct ContentView: View {
                 return
             }
 
+            try FileManager.default.removeItem(at: outputDir)
             // 写入tar.gz文件
             try gzippedData.write(to: tarGzURL)
-
-            // 删除原始tar文件
+            // 删除原始文件
             try FileManager.default.removeItem(at: tarURL)
 
             // 更新压缩文件信息
