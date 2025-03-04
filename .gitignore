@@ -9,3 +9,6 @@ Mobile.xcframework
 *.tar
 *.mp4
 *.bson
+
+# [tmp]
+DataSample

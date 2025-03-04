@@ -11,6 +11,7 @@
 		1768CE7D2D74B2CF009CD8B2 /* DataCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 1768CE7C2D74B2CF009CD8B2 /* DataCompression */; };
 		1768CE802D74B7E0009CD8B2 /* Tarscape in Frameworks */ = {isa = PBXBuildFile; productRef = 1768CE7F2D74B7E0009CD8B2 /* Tarscape */; };
 		1768CE822D76F94A009CD8B2 /* DepthMapRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1768CE812D76F94A009CD8B2 /* DepthMapRecorder.swift */; };
+		17887CCE2D773833005DE8DF /* DataUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17887CCD2D773832005DE8DF /* DataUploader.swift */; };
 		17FD96D22D6E1037002C0370 /* Ardc2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FD96D12D6E1037002C0370 /* Ardc2App.swift */; };
 		17FD96D42D6E1037002C0370 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FD96D32D6E1037002C0370 /* ContentView.swift */; };
 		17FD96D62D6E1039002C0370 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 17FD96D52D6E1039002C0370 /* Assets.xcassets */; };
@@ -40,6 +41,8 @@
 
 /* Begin PBXFileReference section */
 		1768CE812D76F94A009CD8B2 /* DepthMapRecorder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DepthMapRecorder.swift; sourceTree = "<group>"; };
+		17887CCD2D773832005DE8DF /* DataUploader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataUploader.swift; sourceTree = "<group>"; };
+		17887CCF2D773DA9005DE8DF /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		17FD96CE2D6E1037002C0370 /* Ardc2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ardc2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		17FD96D12D6E1037002C0370 /* Ardc2App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ardc2App.swift; sourceTree = "<group>"; };
 		17FD96D32D6E1037002C0370 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -107,8 +110,10 @@
 				17FD96D12D6E1037002C0370 /* Ardc2App.swift */,
 				17FD96D32D6E1037002C0370 /* ContentView.swift */,
 				17FD97082D71BCE5002C0370 /* VideoWriter.swift */,
+				17887CCF2D773DA9005DE8DF /* Info.plist */,
 				1768CE812D76F94A009CD8B2 /* DepthMapRecorder.swift */,
 				17FD96D52D6E1039002C0370 /* Assets.xcassets */,
+				17887CCD2D773832005DE8DF /* DataUploader.swift */,
 				17FD96D72D6E1039002C0370 /* Preview Content */,
 			);
 			path = Ardc2;
@@ -279,6 +284,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				17887CCE2D773833005DE8DF /* DataUploader.swift in Sources */,
 				17FD96D42D6E1037002C0370 /* ContentView.swift in Sources */,
 				17FD97092D71BCE5002C0370 /* VideoWriter.swift in Sources */,
 				1768CE822D76F94A009CD8B2 /* DepthMapRecorder.swift in Sources */,
@@ -449,6 +455,8 @@
 				DEVELOPMENT_TEAM = BF2T8JR387;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ardc2/Info.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera usage description";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -479,6 +487,8 @@
 				DEVELOPMENT_TEAM = BF2T8JR387;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ardc2/Info.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera usage description";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

@@ -63,6 +63,9 @@ struct ContentView: View {
     @State private var yamlContentError: Bool = false
     @State private var tarGzFileSize: Int64 = 0
     @State private var tarGzFilePath: String = ""
+    @State private var isUploading: Bool = false
+    @State private var uploadStatus: String = ""
+    @State private var uploadSuccess: Bool = false
     // [URL]
     @State private var documentsDirectory: URL?
     @State private var outputDirectory: URL?
@@ -234,6 +237,24 @@ struct ContentView: View {
             print("文件路径: \(tarGzURL)")
         } catch {
             print("打包失败: \(error.localizedDescription)")
+        }
+    }
+
+    private func uploadRecording() {
+        guard !tarGzFilePath.isEmpty else {
+            uploadStatus = "没有可上传的文件"
+            return
+        }
+        
+        isUploading = true
+        uploadStatus = "正在上传..."
+        
+        DataUploader.uploadRecordingPackage(tarGzPath: tarGzFilePath) { success, message in
+            DispatchQueue.main.async {
+                isUploading = false
+                uploadSuccess = success
+                uploadStatus = message
+            }
         }
     }
 
@@ -468,6 +489,33 @@ struct ContentView: View {
                                 Text("压缩包大小: \(ByteCountFormatter.string(fromByteCount: tarGzFileSize, countStyle: .file))")
                                 Text("保存路径: \(tarGzFilePath)")
                                     .font(.system(size: 11))
+                                
+                                // 添加上传按钮和状态
+                                Button(action: {
+                                    uploadRecording()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.up.to.line")
+                                        Text(isUploading ? "上传中..." : "上传到服务器")
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 10)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                }
+                                .disabled(isUploading)
+                                .padding(.top, 10)
+                                
+                                if !uploadStatus.isEmpty {
+                                    HStack {
+                                        Image(systemName: uploadSuccess ? "checkmark.circle" : "exclamationmark.circle")
+                                            .foregroundColor(uploadSuccess ? .green : .red)
+                                        Text(uploadStatus)
+                                            .foregroundColor(uploadSuccess ? .green : .red)
+                                    }
+                                    .padding(.top, 5)
+                                }
                             }
                         }
                         .foregroundColor(.white)
